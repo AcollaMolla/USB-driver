@@ -13,6 +13,10 @@ static int __init usb_init(void)
 {
 	int err;
 	printk(KERN_ALERT "USB driver loaded into kernel tree\n");
+	//Initialization
+	memset(&usb_dev, 0, sizeof(struct input_dev));
+	init_input_dev(&usb_dev);
+
 	//Descriptive labels for the USB device
 	usb_dev.name = "Example USB device";
 	usb_dev.phys = "Fake/Path";
