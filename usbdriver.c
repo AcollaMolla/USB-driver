@@ -1,39 +1,40 @@
-#include <linux/input.h>
+#include <linux/usb.h>
 #include <linux/module.h>
 #include <linux/init.h>
+#include <linux/kernel.h>
 
 MODULE_LICENSE("GPL");
 MODULE_AUTHOR("ANTON");
 MODULE_DESCRIPTION("Simple USB driver");
 MODULE_VERSION("0.1");
 
-struct input_dev usb_dev; //input_dev is the structure containing data for the USB driver. From input.h.
+static struct usb_device_id dev_ids[] = {
+	{.driver_info = 42},
+	{}
+};
+
+static struct usb_driver skel_driver = {
+	.name = "Example USB driver",
+	.id_table = dev_ids,
+	.probe = NULL,
+	.disconnect = NULL,
+};
 
 static int __init usb_init(void)
 {
 	int err;
 	printk(KERN_ALERT "USB driver loaded into kernel tree\n");
-	//Initialization
-	memset(&usb_dev, 0, sizeof(struct input_dev));
-	init_input_dev(&usb_dev);
-
-	//Descriptive labels for the USB device
-	usb_dev.name = "Example USB device";
-	usb_dev.phys = "Fake/Path";
-	usb_dev.id.bustype = BUS_HOST;
-	usb_dev.id.vendor = 0x0001;
-	usb_dev.id.product = 0x0001;
-	usb_dev.id.version = 0x0100;
-
-	//Register the device with input core
-	err = input_register_device(&usb_dev);
-	return 0;
+	//Register this driver with the USB subsystem
+	err = usb_register(&skel_driver);
+	if(err)
+		printk(KERN_ALERT "usb_register failed. Error number %d\n", err);
+	return err;
 }
 
 static void __exit usb_exit(void)
 {
-	//Unregister the device from input core
-	input_unregister_device(&usb_dev);
+	//Unregister this driver from the USB subsystem
+	usb_deregister(&skel_driver);
 }
 
 module_init(usb_init);
