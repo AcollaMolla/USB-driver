@@ -8,6 +8,9 @@ MODULE_AUTHOR("ANTON");
 MODULE_DESCRIPTION("Simple USB driver");
 MODULE_VERSION("0.1");
 
+static int dev_probe(struct usb_interface *interface, const struct usb_device_id *id);
+static void dev_disconnect(struct usb_interface *interface);
+
 static struct usb_device_id dev_ids[] = {
 	{.driver_info = 42},
 	{}
@@ -16,9 +19,20 @@ static struct usb_device_id dev_ids[] = {
 static struct usb_driver skel_driver = {
 	.name = "Example USB driver",
 	.id_table = dev_ids,
-	.probe = NULL,
-	.disconnect = NULL,
+	.probe = dev_probe,
+	.disconnect = dev_disconnect
 };
+
+static int dev_probe(struct usb_interface *interface, const struct usb_device_id *id)
+{
+	printk(KERN_ALERT "Probing USB device\n");
+	return 0;
+}
+
+static void dev_disconnect(struct usb_interface *interface)
+{
+	printk(KERN_ALERT "USB disconnecting\n");
+} 
 
 static int __init usb_init(void)
 {
