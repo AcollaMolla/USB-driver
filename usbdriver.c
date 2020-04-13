@@ -11,14 +11,15 @@ MODULE_VERSION("0.1");
 static int dev_probe(struct usb_interface *interface, const struct usb_device_id *id);
 static void dev_disconnect(struct usb_interface *interface);
 
-static struct usb_device_id dev_ids[] = {
-	{.driver_info = 42},
+static struct usb_device_id dev_table[] = {
+	{USB_DEVICE(0x195d, 0x1010)}, //Vendor ID and product ID for a ione mouse obtained using lsusb
 	{}
 };
+MODULE_DEVICE_TABLE(usb, dev_table);
 
 static struct usb_driver skel_driver = {
 	.name = "Example USB driver",
-	.id_table = dev_ids,
+	.id_table = dev_table,
 	.probe = dev_probe,
 	.disconnect = dev_disconnect
 };
