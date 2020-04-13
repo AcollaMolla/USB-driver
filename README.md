@@ -1,7 +1,7 @@
 # USB-driver
 This is a simple USB driver based on the code examples and instructions in Linux Device Drivers chapter 13.
 
-##Important
+## Important
 When plugging in (almost) any USB device that device is by default handled by some builtin kernel module like usbhid, usb_storage,etc. In order to get this module to handle the device you must re-bind it to this module:
 
 Fetch the name for the plugged in USB device
