@@ -16,6 +16,7 @@ static struct usb_device_id dev_table[] = {
 	{USB_DEVICE(0x067b, 0x2303)},
 	{USB_DEVICE(0x195d, 0x1010)},
 	{USB_DEVICE(0x04d9, 0xfa31)},
+	{USB_DEVICE(0x0951, 0x1665)},
 	{}
 };
 MODULE_DEVICE_TABLE(usb, dev_table);
