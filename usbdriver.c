@@ -30,6 +30,14 @@ static struct usb_driver skel_driver = {
 static int dev_probe(struct usb_interface *interface, const struct usb_device_id *id)
 {
 	printk(KERN_ALERT "Probing USB device\n");
+	__u16 vendor_id, product_id;
+	__u8 device_class;
+
+	device_class = id->bDeviceClass;
+	vendor_id = id->idVendor;
+	product_id = id->idProduct;
+	printk(KERN_ALERT "usb-test is attached to USB device VENDOR ID = %x PRODUCT ID = %x\n", vendor_id, product_id);
+	printk(KERN_ALERT "USB device is of class %x\n", device_class);
 	return 0;
 }
 
