@@ -14,6 +14,7 @@ static void dev_disconnect(struct usb_interface *interface);
 static struct usb_device_id dev_table[] = {
 	{USB_DEVICE(0x05f9, 0xffff)}, //Vendor ID and product ID for two USB devices I had laying around
 	{USB_DEVICE(0x067b, 0x2303)},
+	{USB_DEVICE(0x195d, 0x1010)},
 	{}
 };
 MODULE_DEVICE_TABLE(usb, dev_table);
