@@ -10,6 +10,12 @@ tree /sys/bus/usb/devices/
 ```
 You may have to unplug and plug in the devices and run the above command a few times in order to find the correct name. The name should be in the format _x-x:x.x_
 
+To find out what driver module is used for the current USB device use
+```
+usb-devices
+```
+Probably it will be _usbhid_
+
 Unbind it from the current module
 ```
 echo -n "x-x:x.x" > /sys/bus/usb/drivers/{DRIVER}/unbind
