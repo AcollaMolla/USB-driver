@@ -1,0 +1,32 @@
+#!/bin/bash
+
+DEFAULT_DRIVER="usb-storage"
+MY_DRIVER="usb-test"
+USB_DEVICE="1-1.2:1.0"
+
+echo "Unbinding from "$DEFAULT_DRIVER
+err=$(sudo sh -c 'echo -n '$USB_DEVICE' > /sys/bus/usb/drivers/'$DEFAULT_DRIVER'/unbind' 2>&1)
+if [ -z "$err" ]
+then
+	echo "USB device unbinded from" $DEFAULT_DRIVER
+else
+	echo -e "\e[1m\e[41m[ERROR] Could not unbind:" $err "\e[0m"
+	echo "The reason for this might be: "
+	echo "(*)Device has already been unbinded from" $DEFAULT_DRIVER
+	echo "(*)"$DEFAULT_DRIVER " is not responsible for this device"
+	echo "(*)"$USB_DEVICE "is not the correct USB device"
+	exit
+fi
+sleep 2
+echo "Binding to" $MY_DRIVER
+err=$(sudo sh -c 'echo -n '$USB_DEVICE' > /sys/bus/usb/drivers/'$MY_DRIVER'/bind' 2>&1)
+if [ -z "$err" ]
+then
+	echo "USB device binded to" $MY_DRIVER
+else
+	echo "[ERROR] Could not bind:" $err
+	echo "The reason for this might be: "
+	echo "(*)Device has already been binded to" $MY_DRIVER
+	echo "(*)"$MY_DRIVER "does not support this device"
+	exit
+fi
