@@ -138,6 +138,14 @@ static int usb_mouse_open(struct input_dev *dev)
 	struct usb_mouse *mouse;
 	printk(KERN_ALERT "usb mouse open\n");
 	mouse = input_get_drvdata(dev);
+	if(!mouse->usbdev){
+		printk(KERN_ALERT "no mouse->usbdev\n");
+		return -1;
+	}
+	if(!mouse->irq){
+		printk(KERN_ALERT "No mouse->irq\n");
+		return -1;
+	}
 	printk(KERN_ALERT "Got +1\n");
 	mouse->irq->dev = mouse->usbdev;
 	printk(KERN_ALERT "Got +2\n");
