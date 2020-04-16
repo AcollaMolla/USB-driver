@@ -46,6 +46,8 @@ static int dev_probe(struct usb_interface *interface, const struct usb_device_id
 		endpoint = &iface_desc->endpoint[i].desc;
 		printk(KERN_ALERT "Endpoint[%d] address: 0x%02X\n", i, endpoint->bEndpointAddress);
 		printk(KERN_ALERT "Endpoint[%d] attributes: 0x%02X\n", i, endpoint->bmAttributes);
+		if(endpoint->bmAttributes == 3)
+			printk(KERN_ALERT "Endpoint[%d] interval: 0x%02X\n",i, endpoint->bInterval);
 		printk(KERN_ALERT "Endpoint[%d] max pkt size: 0x%04X\n", i, endpoint->wMaxPacketSize);
 	}
 
