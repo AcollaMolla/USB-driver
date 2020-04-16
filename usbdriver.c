@@ -30,11 +30,27 @@ static struct usb_driver skel_driver = {
 	.disconnect = dev_disconnect
 };
 
+static struct file_operations usbdriver_fops = {
+	.owner = THIS_MODULE,
+	.read = NULL,
+	.write = NULL,
+	.open = NULL,
+	.release = NULL,
+};
+
+static struct usb_class_driver usbdriver_class = {
+	.name = "usb/skel%d",
+	.fops = &usbdriver_fops,
+	.minor_base = 192,
+};
+
 static int dev_probe(struct usb_interface *interface, const struct usb_device_id *id)
 {
 	struct usb_host_interface *iface_desc;
 	struct usb_endpoint_descriptor *endpoint;
-	int i;
+	int i, errno;
+
+	errno = usb_register_dev(interface, &usbdriver_class);
 
 	iface_desc = interface->cur_altsetting;
 	printk(KERN_ALERT "USB interface %d now probed: (%04X:%04X)\n", iface_desc->desc.bInterfaceNumber, id->idVendor, id->idProduct);	
