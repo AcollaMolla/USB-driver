@@ -12,7 +12,7 @@ static int dev_probe(struct usb_interface *interface, const struct usb_device_id
 static void dev_disconnect(struct usb_interface *interface);
 
 static struct usb_device_id dev_table[] = {
-	{USB_DEVICE(0x05f9, 0xffff)}, //Vendor ID and product ID for two USB devices I had laying around
+	{USB_DEVICE(0x05f9, 0xffff)}, //Vendor ID and product ID for some USB devices I had laying around
 	{USB_DEVICE(0x067b, 0x2303)},
 	{USB_DEVICE(0x195d, 0x1010)},
 	{USB_DEVICE(0x04d9, 0xfa31)},
@@ -32,14 +32,8 @@ static struct usb_driver skel_driver = {
 static int dev_probe(struct usb_interface *interface, const struct usb_device_id *id)
 {
 	printk(KERN_ALERT "Probing USB device\n");
-	__u16 vendor_id, product_id;
-	__u8 device_class;
-
-	device_class = id->bDeviceClass;
-	vendor_id = id->idVendor;
-	product_id = id->idProduct;
-	printk(KERN_ALERT "usb-test is attached to USB device VENDOR ID = %x PRODUCT ID = %x\n", vendor_id, product_id);
-	printk(KERN_ALERT "USB device is of class %x\n", device_class);
+	printk(KERN_ALERT "usb-test is attached to USB device VENDOR ID = %x PRODUCT ID = %x\n", id->idVendor, id->idProduct);
+	printk(KERN_ALERT "USB device is of class %x\n", id->bDeviceClass);
 	return 0;
 }
 
