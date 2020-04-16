@@ -1,6 +1,6 @@
 #!/bin/bash
 
-DEFAULT_DRIVER="usb-storage"
+DEFAULT_DRIVER="usbhid"
 MY_DRIVER="usb-test"
 USB_DEVICE="1-1.2:1.0"
 

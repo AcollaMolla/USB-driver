@@ -72,14 +72,14 @@ static int dev_probe(struct usb_interface *interface, const struct usb_device_id
 	int i, errno, interval = 5, pipe = 0, maxp = 5;
 
 	device = interface_to_usbdev(interface);
-	errno = usb_register_dev(interface, &usbdriver_class);
+	/*errno = usb_register_dev(interface, &usbdriver_class);
 
 	if(errno)
 	{
 		printk(KERN_ALERT "Error creating a minor for this device\n");
 		usb_set_intfdata(interface, NULL);
 		return -1;
-	}
+	}*/
 
 	mouse = kzalloc(sizeof(struct usb_mouse), GFP_KERNEL);
 	input_dev = input_allocate_device();
@@ -135,7 +135,16 @@ static void dev_disconnect(struct usb_interface *interface)
 
 static int usb_mouse_open(struct input_dev *dev)
 {
+	struct usb_mouse *mouse;
 	printk(KERN_ALERT "usb mouse open\n");
+	mouse = input_get_drvdata(dev);
+	printk(KERN_ALERT "Got +1\n");
+	mouse->irq->dev = mouse->usbdev;
+	printk(KERN_ALERT "Got +2\n");
+	if(usb_submit_urb(mouse->irq, GFP_KERNEL))
+	{
+		printk(KERN_ALERT "Failed submiting urb\n");
+	}
 	return 0;
 }
 
