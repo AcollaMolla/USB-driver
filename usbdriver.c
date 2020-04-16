@@ -94,6 +94,7 @@ static int dev_probe(struct usb_interface *interface, const struct usb_device_id
 		return -4;
 	mouse->usbdev = device;
 	input_dev->open = usb_mouse_open;
+	mouse->dev = input_dev;
 	
 	iface_desc = interface->cur_altsetting;
 	printk(KERN_ALERT "USB interface %d now probed: (%04X:%04X)\n", iface_desc->desc.bInterfaceNumber, id->idVendor, id->idProduct);	
@@ -113,8 +114,17 @@ static int dev_probe(struct usb_interface *interface, const struct usb_device_id
 		printk(KERN_ALERT "Endpoint[%d] max pkt size: 0x%04X\n", i, endpoint->wMaxPacketSize);
 	}
 	usb_fill_int_urb(mouse->irq, mouse->usbdev, pipe, mouse->data, (maxp > 8 ? 8 : maxp), usb_mouse_irq, mouse, interval);
-	
-	return 0;	
+	errno = input_register_device(mouse->dev);
+	if(errno){
+		printk(KERN_ALERT "Can't register device\n");
+		return -1;
+	}
+	errno = register_chrdev(0, "mymouse", &usbdriver_fops);
+	if(errno < 0)
+		printk(KERN_ALERT "mymouse registration failed\n");
+	else
+		printk(KERN_ALERT "mymouse registration succeeded\n");
+	return errno;	
 }
 
 static void dev_disconnect(struct usb_interface *interface)
