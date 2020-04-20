@@ -21,6 +21,8 @@ static struct usb_device_id dev_table[] = {
 	{USB_DEVICE(0x067b, 0x2303)},
 	{USB_DEVICE(0x195d, 0x1010)},
 	{USB_DEVICE(0x04d9, 0xfa31)},
+	{USB_DEVICE(0x046d, 0xc52b)},
+	{USB_DEVICE(0x062a, 0x4182)},
 	{USB_DEVICE_AND_INTERFACE_INFO(0x0951, 0x1665, 8, 6, 0x50)},
 	//{.match_flags = USB_DEVICE_ID_MATCH_DEVICE, .idVendor = 0x0951, .idProduct = 0x1665, .bInterfaceClass = 3},
 	{}
@@ -137,7 +139,7 @@ static int usb_mouse_open(struct input_dev *dev)
 {
 	struct usb_mouse *mouse;
 	printk(KERN_ALERT "usb mouse open\n");
-	mouse = input_get_drvdata(dev);
+	/*mouse = input_get_drvdata(dev);
 	if(!mouse->usbdev){
 		printk(KERN_ALERT "no mouse->usbdev\n");
 		return -1;
@@ -152,7 +154,7 @@ static int usb_mouse_open(struct input_dev *dev)
 	if(usb_submit_urb(mouse->irq, GFP_KERNEL))
 	{
 		printk(KERN_ALERT "Failed submiting urb\n");
-	}
+	}*/
 	return 0;
 }
 
