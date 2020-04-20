@@ -1,9 +1,15 @@
-#include <linux/usb.h>
-#include <linux/module.h>
-#include <linux/init.h>
 #include <linux/kernel.h>
 #include <linux/slab.h>
+#include <linux/module.h>
+#include <linux/init.h>
 #include <linux/usb/input.h>
+#include <linux/hid.h>
+#include <linux/fs.h>
+#include <asm/segment.h>
+#include <asm/uaccess.h>
+#include <linux/buffer_head.h>
+#include <linux/device.h>
+#include <linux/cdev.h>
 
 MODULE_LICENSE("GPL");
 MODULE_AUTHOR("ANTON");
@@ -14,6 +20,10 @@ static int dev_probe(struct usb_interface *interface, const struct usb_device_id
 static void dev_disconnect(struct usb_interface *interface);
 static ssize_t usb_read(struct file *file, char __user *buffer, size_t count, loff_t *ppos);
 static int usb_mouse_open(struct input_dev *dev);
+static void usb_mouse_close(struct input_dev *dev);
+
+static int registered = 0;
+static int current_data = 0;
 
 static struct usb_device *device;
 static struct usb_device_id dev_table[] = {
@@ -63,77 +73,173 @@ static struct usb_class_driver usbdriver_class = {
 static void usb_mouse_irq(struct urb *urb)
 {
 	printk(KERN_ALERT "Mouse irq\n");
+		struct usb_mouse *mouse = urb->context;
+	signed char *data = mouse->data;
+	struct input_dev *dev = mouse->dev;
+	int status;
+
+
+	switch (urb->status) {
+	case 0:			/* success */
+		break;
+	case -ECONNRESET:	/* unlink */
+	case -ENOENT:
+	case -ESHUTDOWN:
+		return;
+	/* -EPIPE:  should clear the halt */
+	default:		/* error */
+		goto resubmit;
+	}
+
+
+	input_sync(dev);
+resubmit:
+	status = usb_submit_urb (urb, GFP_ATOMIC);
+	if (status)
+		dev_err(&mouse->usbdev->dev,
+			"can't resubmit intr, %s-%s/input0, status %d\n",
+			mouse->usbdev->bus->bus_name,
+			mouse->usbdev->devpath, status);
+	
+	
+	current_data = data[0];		
+	if(!(data[0] & 0x01) && !(data[0] & 0x02))
+	{
+		pr_info("No button pressed!\n");
+		return;			//Neither button pressed
+	}
+	
+	
+		
+	//check which button pressed
+	if(data[0] & 0x01){
+		pr_info("Left mouse button clicked!\n");
+		
+	}
+	else if(data[0] & 0x02){
+		pr_info("Right mouse button clicked!\n");
+	}
 }
 
-static int dev_probe(struct usb_interface *interface, const struct usb_device_id *id)
+static int dev_probe(struct usb_interface *intf, const struct usb_device_id *id)
 {
-	struct usb_host_interface *iface_desc;
+	
+	struct usb_device *dev = interface_to_usbdev(intf);
+	struct usb_host_interface *interface;
 	struct usb_endpoint_descriptor *endpoint;
 	struct usb_mouse *mouse;
 	struct input_dev *input_dev;
-	struct usb_device *device = interface_to_usbdev(interface);
-	int i, errno, interval = 5, pipe = 0, maxp = 5;
+	int pipe, maxp;
+	int error = -ENOMEM;
+	int t;
+	
+	interface = intf->cur_altsetting;
+	
+	printk(KERN_ALERT "USB interface %d now probed: (%04X:%04X)\n", interface->desc.bInterfaceNumber, id->idVendor, id->idProduct);	
+	printk(KERN_ALERT "Number of endpoints: %02X\n", interface->desc.bNumEndpoints);
+	printk(KERN_ALERT "Interface class: %02X\n", interface->desc.bInterfaceClass);
 
-	//device = interface_to_usbdev(interface);
-	errno = usb_register_dev(interface, &usbdriver_class);
+	if (interface->desc.bNumEndpoints != 1)
+		return -ENODEV;
 
-	if(errno)
-	{
-		printk(KERN_ALERT "Error creating a minor for this device\n");
-		usb_set_intfdata(interface, NULL);
-		return -1;
-	}
+	endpoint = &interface->endpoint[0].desc;
+	if (!usb_endpoint_is_int_in(endpoint))
+		return -ENODEV;
+
+	pipe = usb_rcvintpipe(dev, endpoint->bEndpointAddress);
+	maxp = usb_maxpacket(dev, pipe, usb_pipeout(pipe));
 
 	mouse = kzalloc(sizeof(struct usb_mouse), GFP_KERNEL);
 	input_dev = input_allocate_device();
-	
-	if(!mouse || !input_dev){
-		printk(KERN_ALERT "ERROR: mouse or input_dev is NULL\n");
-	}
-		
-	mouse->data = usb_alloc_coherent(device, 8, GFP_ATOMIC, &mouse->data_dma);
-	if(!mouse->data)
-		return -3;
-		
-	mouse->irq = usb_alloc_urb(0, GFP_KERNEL);
-	if(!mouse->irq)
-		return -4;
-		
-	mouse->usbdev = device;
-	mouse->dev = input_dev;
-	input_set_drvdata(input_dev, mouse);
-	
-	input_dev->open = usb_mouse_open;
-	
-	iface_desc = interface->cur_altsetting;
-	printk(KERN_ALERT "USB interface %d now probed: (%04X:%04X)\n", iface_desc->desc.bInterfaceNumber, id->idVendor, id->idProduct);	
-	printk(KERN_ALERT "Number of endpoints: %02X\n", iface_desc->desc.bNumEndpoints);
-	printk(KERN_ALERT "Interface class: %02X\n", iface_desc->desc.bInterfaceClass);
+	if (!mouse || !input_dev)
+		goto fail1;
 
-	for(i = 0; i < iface_desc->desc.bNumEndpoints; i++)
+	mouse->data = usb_alloc_coherent(dev, 8, GFP_ATOMIC, &mouse->data_dma);
+	if (!mouse->data)
+		goto fail1;
+
+	mouse->irq = usb_alloc_urb(0, GFP_KERNEL);
+	if (!mouse->irq)
+		goto fail2;
+
+	mouse->usbdev = dev;
+	mouse->dev = input_dev;
+
+	if (dev->manufacturer)
+		strlcpy(mouse->name, dev->manufacturer, sizeof(mouse->name));
+
+	if (dev->product) {
+		if (dev->manufacturer)
+			strlcat(mouse->name, " ", sizeof(mouse->name));
+		strlcat(mouse->name, dev->product, sizeof(mouse->name));
+	}
+
+	if (!strlen(mouse->name))
+		snprintf(mouse->name, sizeof(mouse->name),
+			 "USB HIDBP Mouse %04x:%04x",
+			 le16_to_cpu(dev->descriptor.idVendor),
+			 le16_to_cpu(dev->descriptor.idProduct));
+
+	usb_make_path(dev, mouse->phys, sizeof(mouse->phys));
+	strlcat(mouse->phys, "/input0", sizeof(mouse->phys));
+
+	input_dev->name = mouse->name;
+	input_dev->phys = mouse->phys;
+	usb_to_input_id(dev, &input_dev->id);
+	input_dev->dev.parent = &intf->dev;
+
+	input_dev->evbit[0] = BIT_MASK(EV_KEY) | BIT_MASK(EV_REL);
+	input_dev->keybit[BIT_WORD(BTN_MOUSE)] = BIT_MASK(BTN_LEFT) |
+		BIT_MASK(BTN_RIGHT) | BIT_MASK(BTN_MIDDLE);
+	input_dev->relbit[0] = BIT_MASK(REL_X) | BIT_MASK(REL_Y);
+	input_dev->keybit[BIT_WORD(BTN_MOUSE)] |= BIT_MASK(BTN_SIDE) |
+		BIT_MASK(BTN_EXTRA);
+	input_dev->relbit[0] |= BIT_MASK(REL_WHEEL);
+
+	input_set_drvdata(input_dev, mouse);
+
+	input_dev->open = usb_mouse_open;
+	input_dev->close = usb_mouse_close;
+
+	usb_fill_int_urb(mouse->irq, dev, pipe, mouse->data,
+			 (maxp > 8 ? 8 : maxp),
+			 usb_mouse_irq, mouse, endpoint->bInterval);
+	mouse->irq->transfer_dma = mouse->data_dma;
+	mouse->irq->transfer_flags |= URB_NO_TRANSFER_DMA_MAP;
+
+	error = input_register_device(mouse->dev);
+	if (error)
+		goto fail3;
+
+	usb_set_intfdata(intf, mouse);
+	
+
+	
+	//register device
+	t = register_chrdev(91, "mymouse", &usbdriver_fops);
+	if(t<0) 
 	{
-		endpoint = &iface_desc->endpoint[i].desc;
-		interval = endpoint->bInterval;
-		pipe = usb_rcvintpipe(device, endpoint->bEndpointAddress);
-		maxp = usb_maxpacket(device, pipe, usb_pipeout(pipe));
-		printk(KERN_ALERT "Endpoint[%d] address: 0x%02X\n", i, endpoint->bEndpointAddress);
-		printk(KERN_ALERT "Endpoint[%d] attributes: 0x%02X\n", i, endpoint->bmAttributes);
-		if(endpoint->bmAttributes == 3)
-			printk(KERN_ALERT "Endpoint[%d] interval: 0x%02X\n",i, endpoint->bInterval);
-		printk(KERN_ALERT "Endpoint[%d] max pkt size: 0x%04X\n", i, endpoint->wMaxPacketSize);
+		pr_info("mymouse registration failed\n");
+		registered = 0;
 	}
-	usb_fill_int_urb(mouse->irq, mouse->usbdev, pipe, mouse->data, (maxp > 8 ? 8 : maxp), usb_mouse_irq, mouse, interval);
-	errno = input_register_device(mouse->dev);
-	if(errno){
-		printk(KERN_ALERT "Can't register device\n");
-		return -1;
+	else 
+	{
+		pr_info("mymouse registration successful\n");
+		registered = 1;
 	}
-	/*errno = register_chrdev(0, "mymouse", &usbdriver_fops);
-	if(errno < 0)
-		printk(KERN_ALERT "mymouse registration failed %d\n", errno);
-	else
-		printk(KERN_ALERT "mymouse registration succeeded %d\n", errno);*/
-	return errno;	
+	return t;
+
+fail3:	
+	usb_free_urb(mouse->irq);
+fail2:	
+	usb_free_coherent(dev, 8, mouse->data, mouse->data_dma);
+fail1:	
+	input_free_device(input_dev);
+	kfree(mouse);
+	return error;
+
+
+	
 }
 
 static void dev_disconnect(struct usb_interface *interface)
@@ -168,6 +274,13 @@ static int usb_mouse_open(struct input_dev *dev)
 		printk(KERN_ALERT "Failed submiting urb\n");
 	}
 	return 0;
+}
+
+static void usb_mouse_close(struct input_dev *dev)
+{
+	struct usb_mouse *mouse = input_get_drvdata(dev);
+
+	usb_kill_urb(mouse->irq);
 }
 
 static ssize_t usb_read(struct file *file, char __user *buffer, size_t count, loff_t *ppos)
