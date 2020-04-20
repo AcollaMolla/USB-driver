@@ -71,32 +71,39 @@ static int dev_probe(struct usb_interface *interface, const struct usb_device_id
 	struct usb_endpoint_descriptor *endpoint;
 	struct usb_mouse *mouse;
 	struct input_dev *input_dev;
+	struct usb_device *device = interface_to_usbdev(interface);
 	int i, errno, interval = 5, pipe = 0, maxp = 5;
 
-	device = interface_to_usbdev(interface);
-	/*errno = usb_register_dev(interface, &usbdriver_class);
+	//device = interface_to_usbdev(interface);
+	errno = usb_register_dev(interface, &usbdriver_class);
 
 	if(errno)
 	{
 		printk(KERN_ALERT "Error creating a minor for this device\n");
 		usb_set_intfdata(interface, NULL);
 		return -1;
-	}*/
+	}
 
 	mouse = kzalloc(sizeof(struct usb_mouse), GFP_KERNEL);
 	input_dev = input_allocate_device();
 	
-	if(!mouse)
-		return -2;
+	if(!mouse || !input_dev){
+		printk(KERN_ALERT "ERROR: mouse or input_dev is NULL\n");
+	}
+		
 	mouse->data = usb_alloc_coherent(device, 8, GFP_ATOMIC, &mouse->data_dma);
 	if(!mouse->data)
 		return -3;
+		
 	mouse->irq = usb_alloc_urb(0, GFP_KERNEL);
 	if(!mouse->irq)
 		return -4;
+		
 	mouse->usbdev = device;
-	input_dev->open = usb_mouse_open;
 	mouse->dev = input_dev;
+	input_set_drvdata(input_dev, mouse);
+	
+	input_dev->open = usb_mouse_open;
 	
 	iface_desc = interface->cur_altsetting;
 	printk(KERN_ALERT "USB interface %d now probed: (%04X:%04X)\n", iface_desc->desc.bInterfaceNumber, id->idVendor, id->idProduct);	
@@ -121,11 +128,11 @@ static int dev_probe(struct usb_interface *interface, const struct usb_device_id
 		printk(KERN_ALERT "Can't register device\n");
 		return -1;
 	}
-	errno = register_chrdev(0, "mymouse", &usbdriver_fops);
+	/*errno = register_chrdev(0, "mymouse", &usbdriver_fops);
 	if(errno < 0)
-		printk(KERN_ALERT "mymouse registration failed\n");
+		printk(KERN_ALERT "mymouse registration failed %d\n", errno);
 	else
-		printk(KERN_ALERT "mymouse registration succeeded\n");
+		printk(KERN_ALERT "mymouse registration succeeded %d\n", errno);*/
 	return errno;	
 }
 
@@ -139,7 +146,12 @@ static int usb_mouse_open(struct input_dev *dev)
 {
 	struct usb_mouse *mouse;
 	printk(KERN_ALERT "usb mouse open\n");
-	/*mouse = input_get_drvdata(dev);
+	mouse = input_get_drvdata(dev);
+	if(!mouse)
+	{
+		printk(KERN_ALERT "no mouse\n");
+		return -1;
+	}
 	if(!mouse->usbdev){
 		printk(KERN_ALERT "no mouse->usbdev\n");
 		return -1;
@@ -154,7 +166,7 @@ static int usb_mouse_open(struct input_dev *dev)
 	if(usb_submit_urb(mouse->irq, GFP_KERNEL))
 	{
 		printk(KERN_ALERT "Failed submiting urb\n");
-	}*/
+	}
 	return 0;
 }
 
