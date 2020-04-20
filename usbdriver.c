@@ -24,6 +24,7 @@ static void usb_mouse_close(struct input_dev *dev);
 
 static int registered = 0;
 static int current_data = 0;
+static int MAJOR = 92;
 
 static struct usb_device *device;
 static struct usb_device_id dev_table[] = {
@@ -216,7 +217,7 @@ static int dev_probe(struct usb_interface *intf, const struct usb_device_id *id)
 
 	
 	//register device
-	t = register_chrdev(91, "mymouse", &usbdriver_fops);
+	t = register_chrdev(MAJOR, "mymouse", &usbdriver_fops);
 	if(t<0) 
 	{
 		pr_info("mymouse registration failed\n");
@@ -246,6 +247,9 @@ static void dev_disconnect(struct usb_interface *interface)
 {
 	printk(KERN_ALERT "USB disconnecting\n");
 	usb_deregister_dev(interface, NULL);
+	if(registered)
+		unregister_chrdev(MAJOR, "mymouse");
+	registered = 0;
 }
 
 static int usb_mouse_open(struct input_dev *dev)
