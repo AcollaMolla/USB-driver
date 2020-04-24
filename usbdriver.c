@@ -102,11 +102,10 @@ resubmit:
 			mouse->usbdev->bus->bus_name,
 			mouse->usbdev->devpath, status);
 	
-	int k=0;
-	for(k=0;k<sizeof(data);k++)
-	{
-		printk(KERN_ALERT "data[%d]=%d\n",k,data[k]);
-	}
+	printk(KERN_ALERT "data[0]=%d\n", data[0]);
+	printk(KERN_ALERT "data[1]=%d\n", data[1]);
+	printk(KERN_ALERT "data[2]=%d\n", data[2]);
+	printk(KERN_ALERT "data[3]=%d\n", data[3]);
 	current_data = data[0];		
 	if(!(data[0] & 0x01) && !(data[0] & 0x02))
 	{
@@ -117,11 +116,11 @@ resubmit:
 	
 		
 	//check which button pressed
-	if(data[0] & 0x01){
+	if(data[1] & 0x01){
 		pr_info("Left mouse button clicked!\n");
 		
 	}
-	else if(data[0] & 0x02){
+	else if(data[1] & 0x02){
 		pr_info("Right mouse button clicked!\n");
 	}
 }
