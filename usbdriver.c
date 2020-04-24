@@ -73,8 +73,7 @@ static struct usb_class_driver usbdriver_class = {
 
 static void usb_mouse_irq(struct urb *urb)
 {
-	printk(KERN_ALERT "Mouse irq\n");
-		struct usb_mouse *mouse = urb->context;
+	struct usb_mouse *mouse = urb->context;
 	signed char *data = mouse->data;
 	struct input_dev *dev = mouse->dev;
 	int status;
@@ -106,14 +105,11 @@ resubmit:
 	printk(KERN_ALERT "data[1]=%d\n", data[1]);
 	printk(KERN_ALERT "data[2]=%d\n", data[2]);
 	printk(KERN_ALERT "data[3]=%d\n", data[3]);
+	printk(KERN_ALERT "data[4]=%d\n", data[4]);
+	printk(KERN_ALERT "data[5]=%d\n", data[5]);
+	printk(KERN_ALERT "data[6]=%d\n", data[6]);
+	printk(KERN_ALERT "data[7]=%d\n", data[7]);
 	current_data = data[0];		
-	if(!(data[0] & 0x01) && !(data[0] & 0x02))
-	{
-		pr_info("No button pressed!\n");
-		return;			//Neither button pressed
-	}
-	
-	
 		
 	//check which button pressed
 	if(data[1] & 0x01){
@@ -122,6 +118,9 @@ resubmit:
 	}
 	else if(data[1] & 0x02){
 		pr_info("Right mouse button clicked!\n");
+	}
+	else if(data[1] & 0x04){
+		pr_info("Wheel button clicked!\n");
 	}
 }
 
