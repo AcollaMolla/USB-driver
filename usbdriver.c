@@ -105,7 +105,7 @@ resubmit:
 	int k=0;
 	for(k=0;k<sizeof(data);k++)
 	{
-		printk(KERN_ALERT "data[%d]=%d\n",k,data[i]);
+		printk(KERN_ALERT "data[%d]=%d\n",k,data[k]);
 	}
 	current_data = data[0];		
 	if(!(data[0] & 0x01) && !(data[0] & 0x02))
