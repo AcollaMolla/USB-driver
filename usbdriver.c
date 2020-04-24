@@ -102,7 +102,7 @@ resubmit:
 			mouse->usbdev->bus->bus_name,
 			mouse->usbdev->devpath, status);
 	
-	
+	printk(KERN_ALERT "data = %s\n", data);
 	current_data = data[0];		
 	if(!(data[0] & 0x01) && !(data[0] & 0x02))
 	{
