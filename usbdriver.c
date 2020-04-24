@@ -122,6 +122,9 @@ resubmit:
 	else if(data[1] & 0x04){
 		pr_info("Wheel button clicked!\n");
 	}
+	else if(data[5]){
+		pr_info("Wheel moves!\n");
+	}
 }
 
 static int dev_probe(struct usb_interface *intf, const struct usb_device_id *id)
